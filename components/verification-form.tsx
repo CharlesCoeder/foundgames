@@ -260,7 +260,9 @@ export function VerificationForm() {
         leaseDocument={leaseDocument}
         handleFileChange={handleFileChange}
         handleSubmit={handleManualVerificationSubmit}
-        isSubmitting={verificationStatus === "submitting"}
+        isSubmitting={
+          verificationStatus === ("submitting" as VerificationStatus)
+        }
         onBack={() => setVerificationStatus("idle")}
       />
     );
