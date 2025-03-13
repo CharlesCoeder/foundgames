@@ -442,7 +442,7 @@ export function VerificationForm() {
           <AlertCircle className="h-4 w-4" />
           <p>
             You must join our{" "}
-            <a href="#" className="font-medium text-primary hover:underline">
+            <a href="https://discord.gg/7wFdg8Ne7H" target="_blank" className="font-medium text-primary hover:underline">
               Discord server
             </a>{" "}
             before completing this form.
@@ -494,7 +494,7 @@ export function VerificationForm() {
                         <div className="flex flex-col gap-3">
                           <p className="text-amber-800">{discordError}</p>
                           <a
-                            href="#"
+                            href="https://discord.gg/7wFdg8Ne7H"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
