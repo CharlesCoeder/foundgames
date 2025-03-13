@@ -1,22 +1,23 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { AlertCircle } from "lucide-react"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
+import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { AlertCircle } from "lucide-react";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Form } from "@/components/ui/form"
-import { StepIndicator } from "@/components/form/step-indicator"
-import { QuestionStep } from "@/components/form/question-step"
-import { DiscordVerificationStep } from "@/components/form/discord-verification-step"
-import { SuccessScreen } from "@/components/form/success-screen"
-import { ManualVerificationScreen } from "@/components/form/manual-verification-screen"
-import { VerificationPendingScreen } from "@/components/form/verification-pending-screen"
-import { FormNavigation } from "@/components/form/form-navigation"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Form } from "@/components/ui/form";
+import { StepIndicator } from "@/components/form/step-indicator";
+import { QuestionStep } from "@/components/form/question-step";
+import { DiscordVerificationStep } from "@/components/form/discord-verification-step";
+import { SuccessScreen } from "@/components/form/success-screen";
+import { ManualVerificationScreen } from "@/components/form/manual-verification-screen";
+import { VerificationPendingScreen } from "@/components/form/verification-pending-screen";
+import { FormNavigation } from "@/components/form/form-navigation";
+import { checkDiscordUsername } from "@/actions/discord";
 
 const formSchema = z.object({
   firstName: z.string().min(2, {
@@ -40,18 +41,24 @@ const formSchema = z.object({
   email: z.string().email({
     message: "Please enter a valid email address.",
   }),
-})
+});
 
-export type FormValues = z.infer<typeof formSchema>
-export type VerificationStatus = "idle" | "submitting" | "success" | "manual-verification" | "verification-pending"
+export type FormValues = z.infer<typeof formSchema>;
+export type VerificationStatus =
+  | "idle"
+  | "submitting"
+  | "success"
+  | "manual-verification"
+  | "verification-pending";
 
 export function VerificationForm() {
-  const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>("idle")
-  const [error, setError] = useState("")
-  const [currentStep, setCurrentStep] = useState(0)
-  const [isCheckingDiscord, setIsCheckingDiscord] = useState(false)
-  const [discordError, setDiscordError] = useState("")
-  const [leaseDocument, setLeaseDocument] = useState<File | null>(null)
+  const [verificationStatus, setVerificationStatus] =
+    useState<VerificationStatus>("idle");
+  const [error, setError] = useState("");
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isCheckingDiscord, setIsCheckingDiscord] = useState(false);
+  const [discordError, setDiscordError] = useState("");
+  const [leaseDocument, setLeaseDocument] = useState<File | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -65,7 +72,7 @@ export function VerificationForm() {
       email: "",
     },
     mode: "onChange",
-  })
+  });
 
   const steps = [
     {
@@ -91,7 +98,8 @@ export function VerificationForm() {
     {
       id: "email",
       question: "What's your email address?",
-      description: "We'll use this to notify you about your verification status",
+      description:
+        "We'll use this to notify you about your verification status",
     },
     {
       id: "discordUsername",
@@ -103,136 +111,146 @@ export function VerificationForm() {
       question: "What's your Minecraft username?",
       description: "This is the username you use to log into Minecraft",
     },
-  ]
+  ];
 
   // Function to check if Discord username exists in the server
-  const checkDiscordUsername = async (username: string): Promise<boolean> => {
-    setIsCheckingDiscord(true)
-    setDiscordError("")
+  const verifyDiscordUsername = async (username: string): Promise<boolean> => {
+    setIsCheckingDiscord(true);
+    setDiscordError("");
 
     try {
-      // This would be a real API call in production
-      // const response = await fetch(`/api/check-discord?username=${encodeURIComponent(username)}`)
-      // const data = await response.json()
-      // return data.exists
+      const result = await checkDiscordUsername(username);
 
-      // Simulate API call with a delay
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      if (result.error) {
+        setDiscordError(`Verification error: ${result.error}`);
+        return false;
+      }
 
-      // For demo purposes, let's say usernames that start with "found" are in the server
-      return username.toLowerCase().startsWith("found")
+      if (!result.exists) {
+        setDiscordError(
+          "We couldn't find you in our Discord server. Please join before continuing."
+        );
+        return false;
+      }
+
+      return true;
     } catch (error) {
-      console.error("Error checking Discord username:", error)
-      return false
+      console.error("Error checking Discord username:", error);
+      setDiscordError(
+        "We couldn't verify your Discord username. Please try again later."
+      );
+      return false;
     } finally {
-      setIsCheckingDiscord(false)
+      setIsCheckingDiscord(false);
     }
-  }
+  };
 
   const nextStep = async () => {
-    const currentField = steps[currentStep].id as keyof FormValues
-    const isValid = !form.formState.errors[currentField]
+    const currentField = steps[currentStep].id as keyof FormValues;
+    const isValid = !form.formState.errors[currentField];
 
     if (isValid && form.getValues(currentField)) {
       // Special handling for Discord username verification
       if (currentField === "discordUsername") {
-        const discordUsername = form.getValues("discordUsername")
-        const isInDiscord = await checkDiscordUsername(discordUsername)
+        const discordUsername = form.getValues("discordUsername");
+        const isInDiscord = await verifyDiscordUsername(discordUsername);
 
         if (!isInDiscord) {
-          setDiscordError("We couldn't find you in our Discord server. Please join before continuing.")
-          return
+          return; // The error is already set in verifyDiscordUsername
         }
 
         // Clear any previous Discord errors if verification succeeds
-        setDiscordError("")
+        setDiscordError("");
       }
 
       if (currentStep < steps.length - 1) {
-        setCurrentStep(currentStep + 1)
+        setCurrentStep(currentStep + 1);
       } else {
-        handleSubmit()
+        handleSubmit();
       }
     } else {
       // Trigger validation
-      form.trigger(currentField)
+      form.trigger(currentField);
     }
-  }
+  };
 
   const prevStep = () => {
     if (currentStep > 0) {
-      setCurrentStep(currentStep - 1)
+      setCurrentStep(currentStep - 1);
     }
-  }
+  };
 
   const handleSubmit = async () => {
-    const isValid = await form.trigger()
-    if (!isValid) return
+    const isValid = await form.trigger();
+    if (!isValid) return;
 
     // Double-check Discord verification before final submission
-    const discordUsername = form.getValues("discordUsername")
-    const isInDiscord = await checkDiscordUsername(discordUsername)
+    const discordUsername = form.getValues("discordUsername");
+    const isInDiscord = await verifyDiscordUsername(discordUsername);
 
     if (!isInDiscord) {
-      setCurrentStep(5) // Go back to Discord username step
-      setDiscordError("We couldn't find you in our Discord server. Please join before continuing.")
-      return
+      setCurrentStep(5); // Go back to Discord username step
+      return; // Error is already set in verifyDiscordUsername
     }
 
-    setVerificationStatus("submitting")
-    setError("")
+    setVerificationStatus("submitting");
+    setError("");
 
     try {
       // This would be a server action in a real implementation
       // const result = await submitVerification(form.getValues())
 
       // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
       // Simulate verification result (50/50 chance of automatic vs manual verification)
-      const isAutomaticallyVerified = Math.random() > 0.5
+      const isAutomaticallyVerified = Math.random() > 0.5;
 
       if (isAutomaticallyVerified) {
-        setVerificationStatus("success")
+        setVerificationStatus("success");
       } else {
-        setVerificationStatus("manual-verification")
+        setVerificationStatus("manual-verification");
       }
     } catch (err) {
-      setError("There was an error submitting your verification. Please try again.")
-      setVerificationStatus("idle")
+      setError(
+        "There was an error submitting your verification. Please try again."
+      );
+      setVerificationStatus("idle");
     }
-  }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setLeaseDocument(e.target.files[0])
+      setLeaseDocument(e.target.files[0]);
     }
-  }
+  };
 
   const handleManualVerificationSubmit = async () => {
     if (!leaseDocument) {
-      setError("Please upload a document to verify your lease")
-      return
+      setError("Please upload a document to verify your lease");
+      return;
     }
 
-    setVerificationStatus("submitting")
+    setVerificationStatus("submitting");
 
     try {
       // This would be a server action in a real implementation
       // await submitManualVerification(form.getValues(), leaseDocument)
 
       // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      setVerificationStatus("verification-pending")
+      setVerificationStatus("verification-pending");
     } catch (err) {
-      setError("There was an error submitting your verification. Please try again.")
-      setVerificationStatus("manual-verification")
+      setError(
+        "There was an error submitting your verification. Please try again."
+      );
+      setVerificationStatus("manual-verification");
     }
-  }
+  };
 
   if (verificationStatus === "success") {
-    return <SuccessScreen />
+    return <SuccessScreen />;
   }
 
   if (verificationStatus === "manual-verification") {
@@ -245,11 +263,11 @@ export function VerificationForm() {
         isSubmitting={verificationStatus === "submitting"}
         onBack={() => setVerificationStatus("idle")}
       />
-    )
+    );
   }
 
   if (verificationStatus === "verification-pending") {
-    return <VerificationPendingScreen />
+    return <VerificationPendingScreen />;
   }
 
   return (
@@ -267,7 +285,11 @@ export function VerificationForm() {
           <AlertCircle className="h-4 w-4" />
           <p>
             You must join our{" "}
-            <a href="https://discord.gg/7wFdg8Ne7H" target="_blank" className="font-medium text-primary hover:underline">
+            <a
+              href="https://discord.gg/7wFdg8Ne7H"
+              target="_blank"
+              className="font-medium text-primary hover:underline"
+            >
               Discord server
             </a>{" "}
             before completing this form.
@@ -278,7 +300,10 @@ export function VerificationForm() {
       <Form {...form}>
         <div className="rounded-lg border shadow-sm">
           <div className="p-6">
-            <StepIndicator currentStep={currentStep} totalSteps={steps.length} />
+            <StepIndicator
+              currentStep={currentStep}
+              totalSteps={steps.length}
+            />
 
             <div className="relative mt-8 min-h-[300px]">
               {currentStep === 5 ? (
@@ -290,7 +315,11 @@ export function VerificationForm() {
                   description={steps[currentStep].description}
                 />
               ) : (
-                <QuestionStep form={form} currentStep={currentStep} steps={steps} />
+                <QuestionStep
+                  form={form}
+                  currentStep={currentStep}
+                  steps={steps}
+                />
               )}
             </div>
           </div>
@@ -306,6 +335,5 @@ export function VerificationForm() {
         </div>
       </Form>
     </div>
-  )
+  );
 }
-
