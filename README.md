@@ -1,22 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FOUND Games
+
+A verification system for student housing residents to access a Minecraft server.
 
 ## Getting Started
 
-First, run the development server:
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Copy `.env.local.example` to `.env.local` and update with your Supabase credentials:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+   ```bash
+   cp .env.local.example .env.local
+   ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Get your Supabase credentials from your Supabase dashboard:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+   - Project URL: Project Settings > API > URL
+   - Anonymous Key: Project Settings > API > `anon` `public`
+   - Service Role Key: Project Settings > API > `service_role` (Keep this secret!)
+
+5. Run the development server:
+
+   ```bash
+   npm run dev
+   ```
+
+6. Access the application at [http://localhost:3000](http://localhost:3000)
+
+## Admin Setup
+
+To create the initial admin user:
+
+1. Make sure you've set up your Supabase credentials, including the `NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY`
+2. Go to [http://localhost:3000/admin-setup](http://localhost:3000/admin-setup)
+3. Use the setup key: `FOUND_GAMES_ADMIN_SETUP`
+4. Fill in the admin user details and create the account
+5. Confirm your email if email confirmation is enabled
+6. Log in at [http://localhost:3000/login](http://localhost:3000/login)
+
+## Database Schema
+
+The application uses the following main tables:
+
+- `profiles`: User profiles with roles (admin, user)
+- `buildings`: Student housing buildings
+- `residents`: Residents living in the buildings
+- `verifications`: Player verification requests
+- `import_logs`: Records of resident import operations
+
+You can run the schema migration scripts in the Supabase SQL Editor:
+
+- `supabase/migrations/profiles_schema.sql`
+- `supabase/migrations/residents_schema.sql`
+
+## Features
+
+- Admin dashboard for managing residents and verifications
+- Resident import from Excel files
+- User verification workflow
+- Discord and Minecraft username verification
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
