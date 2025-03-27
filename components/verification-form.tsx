@@ -282,23 +282,6 @@ export function VerificationForm() {
         </Alert>
       )}
 
-      <div className="rounded-lg border p-4">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <AlertCircle className="h-4 w-4" />
-          <p>
-            You must join our{" "}
-            <a
-              href="https://discord.gg/7wFdg8Ne7H"
-              target="_blank"
-              className="font-medium text-primary hover:underline"
-            >
-              Discord server
-            </a>{" "}
-            before completing this form.
-          </p>
-        </div>
-      </div>
-
       <Form {...form}>
         <div className="rounded-lg border shadow-sm">
           <div className="p-6">

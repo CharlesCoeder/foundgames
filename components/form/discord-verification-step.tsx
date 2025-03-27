@@ -47,15 +47,6 @@ export function DiscordVerificationStep({
           <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-4">
             <div className="flex flex-col gap-3">
               <p className="text-amber-800">{discordError}</p>
-              <a
-                href="https://discord.gg/7wFdg8Ne7H"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-              >
-                Join our Discord server
-                <ExternalLink className="h-3 w-3" />
-              </a>
               <p className="text-xs text-muted-foreground">
                 After joining, click "Next" again to verify your Discord
                 username
