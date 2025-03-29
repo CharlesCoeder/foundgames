@@ -10,7 +10,9 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
  * @returns Result of the callback function
  */
 export async function performAdminAction<T>(
-  callback: (adminClient: ReturnType<typeof createSupabaseClient>) => Promise<T>
+  callback: (
+    adminClient: ReturnType<typeof createSupabaseClient<any, "public", any>>
+  ) => Promise<T>
 ): Promise<T> {
   // Ensure we have the necessary environment variables
   if (
