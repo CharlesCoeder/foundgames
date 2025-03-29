@@ -12,12 +12,10 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Form } from "@/components/ui/form";
 import { StepIndicator } from "@/components/form/step-indicator";
 import { QuestionStep } from "@/components/form/question-step";
-import { DiscordVerificationStep } from "@/components/form/discord-verification-step";
 import { SuccessScreen } from "@/components/form/success-screen";
 import { ManualVerificationScreen } from "@/components/form/manual-verification-screen";
 import { VerificationPendingScreen } from "@/components/form/verification-pending-screen";
 import { FormNavigation } from "@/components/form/form-navigation";
-import { checkDiscordUsername } from "@/actions/discord";
 
 const formSchema = z.object({
   firstName: z.string().min(2, {
@@ -56,8 +54,6 @@ export function VerificationForm() {
     useState<VerificationStatus>("idle");
   const [error, setError] = useState("");
   const [currentStep, setCurrentStep] = useState(0);
-  const [isCheckingDiscord, setIsCheckingDiscord] = useState(false);
-  const [discordError, setDiscordError] = useState("");
   const [leaseDocument, setLeaseDocument] = useState<File | null>(null);
 
   const form = useForm<FormValues>({
@@ -104,7 +100,7 @@ export function VerificationForm() {
     {
       id: "discordUsername",
       question: "What's your Discord username?",
-      description: "We'll verify that you've joined our Discord server",
+      description: "This helps us contact you about server updates and events",
     },
     {
       id: "minecraftUsername",
@@ -113,56 +109,11 @@ export function VerificationForm() {
     },
   ];
 
-  // Function to check if Discord username exists in the server
-  const verifyDiscordUsername = async (username: string): Promise<boolean> => {
-    setIsCheckingDiscord(true);
-    setDiscordError("");
-
-    try {
-      const result = await checkDiscordUsername(username);
-
-      if (result.error) {
-        setDiscordError(`Verification error: ${result.error}`);
-        return false;
-      }
-
-      if (!result.exists) {
-        setDiscordError(
-          "We couldn't find you in our Discord server. Please join before continuing."
-        );
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error("Error checking Discord username:", error);
-      setDiscordError(
-        "We couldn't verify your Discord username. Please try again later."
-      );
-      return false;
-    } finally {
-      setIsCheckingDiscord(false);
-    }
-  };
-
   const nextStep = async () => {
     const currentField = steps[currentStep].id as keyof FormValues;
     const isValid = !form.formState.errors[currentField];
 
     if (isValid && form.getValues(currentField)) {
-      // Special handling for Discord username verification
-      if (currentField === "discordUsername") {
-        const discordUsername = form.getValues("discordUsername");
-        const isInDiscord = await verifyDiscordUsername(discordUsername);
-
-        if (!isInDiscord) {
-          return; // The error is already set in verifyDiscordUsername
-        }
-
-        // Clear any previous Discord errors if verification succeeds
-        setDiscordError("");
-      }
-
       if (currentStep < steps.length - 1) {
         setCurrentStep(currentStep + 1);
       } else {
@@ -184,36 +135,53 @@ export function VerificationForm() {
     const isValid = await form.trigger();
     if (!isValid) return;
 
-    // Double-check Discord verification before final submission
-    const discordUsername = form.getValues("discordUsername");
-    const isInDiscord = await verifyDiscordUsername(discordUsername);
-
-    if (!isInDiscord) {
-      setCurrentStep(5); // Go back to Discord username step
-      return; // Error is already set in verifyDiscordUsername
-    }
-
     setVerificationStatus("submitting");
     setError("");
 
     try {
-      // This would be a server action in a real implementation
-      // const result = await submitVerification(form.getValues())
+      const formData = form.getValues();
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      if (!process.env.NEXT_PUBLIC_VERIFIER_API_KEY) {
+        throw new Error("Verifier API key is not configured");
+      }
 
-      // Simulate verification result (50/50 chance of automatic vs manual verification)
-      const isAutomaticallyVerified = Math.random() > 0.5;
+      // Make API call to Flask server
+      const response = await fetch(
+        "http://localhost:5000/api/user-building?" +
+          new URLSearchParams({
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            room_number: formData.roomNumber,
+            building: formData.building,
+            email: formData.email,
+          }),
+        {
+          headers: {
+            "X-API-Key": process.env.NEXT_PUBLIC_VERIFIER_API_KEY,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        }
+      );
 
-      if (isAutomaticallyVerified) {
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Verification failed");
+      }
+
+      const data = await response.json();
+
+      if (data === true) {
         setVerificationStatus("success");
       } else {
         setVerificationStatus("manual-verification");
       }
     } catch (err) {
+      console.error("Verification error:", err);
       setError(
-        "There was an error submitting your verification. Please try again."
+        err instanceof Error
+          ? err.message
+          : "There was an error verifying your information. Please try again."
       );
       setVerificationStatus("idle");
     }
@@ -291,21 +259,11 @@ export function VerificationForm() {
             />
 
             <div className="relative mt-8 min-h-[300px]">
-              {currentStep === 5 ? (
-                <DiscordVerificationStep
-                  form={form}
-                  error={form.formState.errors.discordUsername?.message}
-                  discordError={discordError}
-                  question={steps[currentStep].question}
-                  description={steps[currentStep].description}
-                />
-              ) : (
-                <QuestionStep
-                  form={form}
-                  currentStep={currentStep}
-                  steps={steps}
-                />
-              )}
+              <QuestionStep
+                form={form}
+                currentStep={currentStep}
+                steps={steps}
+              />
             </div>
           </div>
 
@@ -315,7 +273,6 @@ export function VerificationForm() {
             onPrev={prevStep}
             onNext={nextStep}
             isSubmitting={verificationStatus === "submitting"}
-            isCheckingDiscord={isCheckingDiscord}
           />
         </div>
       </Form>

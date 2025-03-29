@@ -1,15 +1,15 @@
-"use client"
+"use client";
 
-import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface FormNavigationProps {
-  currentStep: number
-  totalSteps: number
-  onPrev: () => void
-  onNext: () => void
-  isSubmitting: boolean
-  isCheckingDiscord: boolean
+  currentStep: number;
+  totalSteps: number;
+  onPrev: () => void;
+  onNext: () => void;
+  isSubmitting: boolean;
+  isCheckingDiscord?: boolean;
 }
 
 export function FormNavigation({
@@ -18,7 +18,7 @@ export function FormNavigation({
   onPrev,
   onNext,
   isSubmitting,
-  isCheckingDiscord,
+  isCheckingDiscord = false,
 }: FormNavigationProps) {
   return (
     <div className="flex items-center justify-between border-t p-4">
@@ -32,7 +32,11 @@ export function FormNavigation({
         Back
       </Button>
 
-      <Button type="button" onClick={onNext} disabled={isSubmitting || isCheckingDiscord}>
+      <Button
+        type="button"
+        onClick={onNext}
+        disabled={isSubmitting || isCheckingDiscord}
+      >
         {isCheckingDiscord ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -53,6 +57,5 @@ export function FormNavigation({
         )}
       </Button>
     </div>
-  )
+  );
 }
-

@@ -115,7 +115,6 @@ export function AdminDashboard() {
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   const [recentImports, setRecentImports] = useState<any[]>([]);
   const [importLoading, setImportLoading] = useState(true);
-  const [residentCount, setResidentCount] = useState<number | null>(null);
 
   // Fetch recent imports and resident counts
   useEffect(() => {
@@ -142,18 +141,6 @@ export function AdminDashboard() {
           console.error("Error fetching import logs:", importsError);
         } else {
           setRecentImports(imports || []);
-        }
-
-        // Fetch total resident count
-        const { count, error: countError } = await supabase
-          .from("residents")
-          .select("*", { count: "exact", head: true })
-          .eq("is_active", true);
-
-        if (countError) {
-          console.error("Error fetching resident count:", countError);
-        } else {
-          setResidentCount(count);
         }
       } catch (err) {
         console.error("Error fetching dashboard data:", err);
@@ -204,23 +191,7 @@ export function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Residents
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {residentCount ?? "Loading..."}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Active residents across all buildings
-            </p>
-          </CardContent>
-        </Card>
-
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
